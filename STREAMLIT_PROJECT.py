@@ -1,67 +1,86 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 import pandas as pd
 
-# === Google Sheets Setup ===
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "sodium-ray-466807-i9-4859b198bce0.json", scope
-)
-client = gspread.authorize(creds)
+# ====== SETUP GOOGLE SHEET ACCESS ======
+json_key = {
+    "type": "service_account",
+    "project_id": "sodium-ray-466807-i9",
+    "private_key_id": "4859b198bce010f4b0c92de833b3b47f017c593d",
+    "private_key": """-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDgPawDu1qqGR84
+xQZCrSjpzW8ScTOzyjUeI+jl9u1PVv2jQBLINCeiyuA/HZASGNfQgy7k7/EBZ/jS
+ngh+GOqcQYDB6vzVfKmoTwOdfO+2injX02mwwWcQqkbSMwioSpWe4yUQ73aKSC+u
+m0KCaaKLvVrLhpRWiNc1jK9pdQ6XNEUbQXYIrPbmZAIQ6GAzqc67imcQ5pHJXXOt
+PbY07lK3B4L5aDZ+mhPOnzesymXPLKW/TMQdjrqq3k8QqMyvVgri9qxKxLmbipUU
+OVcYswhOo0LPbkYhnVotIKVDzY1T7QMwAP6cpRMEAw9AjxjIQ2N9HlFPLccqAUcB
+Sk2JwLrbAgMBAAECggEAY/caWA+Nu4a3hHdQ8yh+tLwAaBhPFDdwtp8LlHkgEd6V
+89D8joOxp8EJdxmWwHqSu0HABg9xQU84faw13QD+leodnFVFoWaRu5Z95hdsRdQ1
+SwHUfBe7+pHuQIa/tUaKrOpV+9bE4aCMoSpV3A17iRBBCbpVJr6aMiUljb3BY2Xz
+03iMtxqt6JOZp28W5HvFXKrN9ecdefTeaPx9V1lUO008Fh6RbRW04yVekk2eZJiW
+cIT1bSDKI6dp6gkzbdDyU9xHR+Rv8P8cF96X3O7TT1A3REpK9Rw0WBI+RqUw9Nww
+FlbRI2Rm0vJRJ7PcdIXMdyhLPmvtPjYFfTltQUXHAQKBgQD/2R9mxiXm6di1ECBs
+GZB4RusS/7fdLgg5XQQbN26TAC96KG2Z5AePgU/uwD40dwQ/bg8rOZTtLzT5yW1c
+f/GAq3pYRSxJdDeRjnpH+9eU1LQBMX8NE6tyS8FtZVDFegZHYbVXoQjY0bJ1D5+u
+sq0H/PAV1ep8iGTjgJxSO0dafwKBgQDgX78UK3hwIhqQD5C7AqmnjkbpOw6SG9+H
+cMuiqt1MkmE5A8bz/BZI68hmcDnkE4pNAIcCKQncld1eGRR8Uh+PyFJPx4aQfdWQ
+FDuyV2aqK2SvEkjQwMYU2J87k5d94RONqKmE01M8PDBSLqXqJqvwarBQccUDCrrr
+U0PmmpMZpQKBgFQq4aG13hIxLBGk1IW7g0OOURdW+O3SjvIQH6G0grPpg7T0R9ow
+oiwbpmgs5knsPYGAe40EzHGa7hqeoVOk45Yo037mgsNHcGB6NtAnkaxsrSsXVWy/
+488eDOwoQII2uooRIs9JMtfhZIwOL8IRFcti8ri8Pv/o/we477Q9vCORAoGAQQSd
+y0t5gAzx45MPHpH79ZjuBYHejApVsNrHt6CJtjmowKvOiD8hegoRLVYSAHyFFCE1
+/jNEL06iMjVUUV4+1Rx4dbPc05wTOcgTMG/RSTh/2ZeT0CI8hCftpIb1XD3Pu7oH
+PX07XnYWjooD/CEuq+FOrFD7hREj7zNWtslOHR0CgYBH49C/Y/qmJL+mn9xFUCkg
+teg/93i1Mp1ygeUAj/+DxxUI4Jou8yOalpKpQwAnKGeKix+qdBodasAIYk89Y9/m
+0hZmoHvmgReI4jmfz8FV66CS/SCTP77TQpN67KEykVp2qF4CwuXOC3NrkDIrDTjn
+6kq6z2kDOLhdbQsWSgInCw==
+-----END PRIVATE KEY-----""",
+    "client_email": "streamlit@sodium-ray-466807-i9.iam.gserviceaccount.com",
+    "client_id": "110745832600805065687",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/streamlit%40sodium-ray-466807-i9.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+}
 
-# === Load Google Sheet ===
-SHEET_NAME = "report"
+SCOPES = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+credentials = Credentials.from_service_account_info(json_key, scopes=SCOPES)
+client = gspread.authorize(credentials)
+
+# ====== SHEET SETTINGS ======
+SPREADSHEET_NAME = "report"
 TAB_NAME = "ALL NEW"
 
+# ====== LOAD DATA ======
 try:
-    worksheet = client.open(SHEET_NAME).worksheet(TAB_NAME)
+    worksheet = client.open(SPREADSHEET_NAME).worksheet(TAB_NAME)
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
 except Exception as e:
-    st.error("❌ Failed to load Google Sheet. Check sheet name, tab name, or JSON credentials.")
-    st.exception(e)
+    st.error(f"❌ Failed to load Google Sheet: {e}")
     st.stop()
 
-# === Streamlit App Layout ===
-st.set_page_config(page_title="Device Report Search", layout="wide")
-st.title("📋 Device Report Search (ALL NEW Tab)")
+# ====== STREAMLIT UI ======
+st.title("🔍 Device Code Search")
+st.markdown("Search by device code (e.g., `C100`, `M200`, `P3000`)")
 
-tab1, tab2 = st.tabs(["🔎 Search Report", "🛠️ Other Features"])
+letter = st.selectbox("Choose letter", ["C", "P", "M"])
+number = st.text_input("Enter number")
+search = st.button("Search")
 
-with tab1:
-    st.subheader("Search by Device Code")
+if search:
+    if number.strip() == "":
+        st.warning("Please enter a number.")
+    else:
+        full_code = f"{letter}{number}"
+        st.write(f"Searching for: `{full_code}`")
 
-    col1, col2, col3 = st.columns([1, 2, 1])
+        matched_rows = df[df['B'].astype(str).str.strip() == full_code]
 
-    with col1:
-        letter = st.selectbox("Select Code Prefix", ["M", "C", "P"])
-
-    with col2:
-        number = st.text_input("Enter Code Number", placeholder="e.g. 100")
-
-    with col3:
-        search = st.button("🔍 Search")
-
-    if search:
-        if letter and number:
-            search_code = f"{letter.upper()}{number.strip()}"
-            st.markdown(f"Searching for **{search_code}** in column B of '{TAB_NAME}' tab...")
-
-            # === Search in Column B (index 1, assuming column B is second column) ===
-            try:
-                match_df = df[df[df.columns[1]].astype(str).str.upper() == search_code.upper()]
-
-                if not match_df.empty:
-                    st.success(f"✅ Found {len(match_df)} matching item(s).")
-                    st.dataframe(match_df, use_container_width=True)
-                else:
-                    st.warning("❌ No matching device found.")
-            except Exception as search_error:
-                st.error("Error during search.")
-                st.exception(search_error)
+        if not matched_rows.empty:
+            st.success(f"✅ Found {len(matched_rows)} matching record(s)")
+            st.dataframe(matched_rows)
         else:
-            st.error("⚠️ Please select a letter and enter a number.")
-
-with tab2:
-    st.info("More features will be added soon.")
+            st.warning("No matching records found.")
